@@ -1,6 +1,20 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 from enum import Enum
 from typing import Optional
+from datetime import datetime
+from pydantic import BaseModel
+
+
+
+class UsuarioLogin (BaseModel):
+    email:str
+    senha:str
+
+class UsuarioLogado(BaseModel):
+    id:int
+    nome:str
+    email:str
+    role:str
 
 class PerfilBase(SQLModel):
     nome: str = Field(min_length=2,max_length=50)
@@ -17,6 +31,31 @@ class CategoriaEquipamento(SQLModel,table= True):
     categoria_id : int | None = Field(default=None,primary_key=True)
     categoria_descricao : str = Field(max_length=100)
     #equipamentos : list["Equipamento"] 
+
+class UsuarioBase(SQLModel):
+    nome_completo: str = Field(
+        min_length=3,
+        max_length=100
+    )
+    documento: str = Field(
+        min_length=5,
+        max_length=20
+    )
+    email: str = Field(
+        max_length=100  
+    )
+    curso: str | None = None
+    senha_hash: str
+    perfil_id: int = Field(
+        foreign_key="perfis.id_perfil"
+    )
+
+class Usuario(UsuarioBase, table=True):
+    __tablename__="usuarios"
+    id_usuario: int | None = Field(
+        default=None,
+        primary_key=True
+    )
     
     
 #############################################################################

@@ -9,6 +9,7 @@ import datetime
 from routes.CategoriaEquipamentosRoutes import categoria_equipamento_router
 from routes.EquipamentosRoutes import equipamento_router
 from routes.PerfilRoutes import perfil_router
+from routes.UsuarioRoutes import usuario_router
 from config.config import settings
 
 
@@ -21,6 +22,7 @@ app = FastAPI(
 app.include_router(categoria_equipamento_router)
 app.include_router(equipamento_router)
 app.include_router(perfil_router)
+app.include_router(usuario_router)
 
 
 

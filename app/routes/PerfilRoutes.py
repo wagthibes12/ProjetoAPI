@@ -56,7 +56,7 @@ def deletar_perfil (perfil_id: int, db: Session = Depends(database.get_db)):
         PerfilController.deletar_perfil(db, perfil_id)
     except KeyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except KeyError as e:
+    except ValueError as e:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except KeyError as e:
+    except RuntimeError as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
