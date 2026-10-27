@@ -1,4 +1,12 @@
+
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# Caminho da pasta raiz do projeto ProjetoAPI
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
+
 
 class Settings(BaseSettings):
     # SSH
@@ -15,6 +23,7 @@ class Settings(BaseSettings):
     db_user: str
     db_password: str
 
+    # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_EXPIRE_MINUTES: int = 15
@@ -22,10 +31,14 @@ class Settings(BaseSettings):
     JWT_REFRESH_EXPIRE_DAYS: int = 7
     JWT_ISSUER: str = "sistema-emprestimo"
 
+    model_config = SettingsConfigDict(
+        env_file=PASTA_PROJETO / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-#Variável que armazena os valores lidos do arquivo .env
+# Variável que armazena os valores lidos do arquivo .env
 settings = Settings()
 
 
