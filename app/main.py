@@ -1,8 +1,6 @@
 
-from fastapi import FastAPI, Depends
-from sqlmodel import Session
+from fastapi import FastAPI
 
-from dependencies.dependencies import database
 from routes.CategoriaEquipamentosRoutes import categoria_equipamento_router
 from routes.EquipamentosRoutes import equipamento_router
 from routes.PerfilRoutes import perfil_router

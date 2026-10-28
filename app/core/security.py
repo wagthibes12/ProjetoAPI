@@ -1,6 +1,7 @@
 
 from passlib.context import CryptContext
 from datetime import datetime, timezone, timedelta
+
 from config.config import settings
 import jwt
 
@@ -11,10 +12,8 @@ pwd_context = CryptContext(
 )
 
 
-
 def cria_hash_senha(senha: str) -> str:
     return pwd_context.hash(senha)
-
 
 
 def verifica_senha(
@@ -22,10 +21,12 @@ def verifica_senha(
     senha_banco: str
 ) -> bool:
     try:
-        return pwd_context.verify(senha_informada, senha_banco)
+        return pwd_context.verify(
+            senha_informada,
+            senha_banco
+        )
     except (ValueError, TypeError):
         return False
-
 
 
 def criar_token(info: str, role: str) -> str:

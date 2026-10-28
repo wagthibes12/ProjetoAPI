@@ -20,7 +20,7 @@ usuario_router = APIRouter()
     response_model=list[UsuarioResposta],
     status_code=status.HTTP_200_OK
 )
-def listarusuarios(
+def listar_usuarios(
     db: Session = Depends(database.get_db),
     usuario_atual=Depends(verifica_permissao("ADMIN"))
 ):
@@ -62,7 +62,7 @@ def inserir_usuario(
 
 
 @usuario_router.put(
-    "/usuario/{usuario_id}",
+    "/usuarios/{usuario_id}",
     response_model=UsuarioResposta,
     status_code=status.HTTP_200_OK
 )
@@ -102,7 +102,7 @@ def atualizar_usuario(
     "/usuarios/{usuario_id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
-def usuario_perfil(
+def deletar_usuario(
     usuario_id: int,
     db: Session = Depends(database.get_db),
     usuario_atual=Depends(verifica_permissao("ADMIN"))
