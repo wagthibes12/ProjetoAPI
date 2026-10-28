@@ -1,8 +1,10 @@
+
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlmodel import Session
 
 from entidades.models import Equipamento
 from dependencies.dependencies import database
+from dependencies.auth import verifica_permissao
 from controllers import EquipamentoController
 
 equipamento_router = APIRouter()
@@ -13,7 +15,12 @@ equipamento_router = APIRouter()
     response_model=list[Equipamento],
     status_code=status.HTTP_200_OK
 )
-def listar_equipamentos(db: Session = Depends(database.get_db)):
+def listar_equipamentos(
+    db: Session = Depends(database.get_db),
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN", "GESTOR", "DISCENTE")
+    )
+):
     try:
         equipamentos = EquipamentoController.buscar_todos_equipamentos(db)
 
@@ -36,7 +43,10 @@ def listar_equipamentos(db: Session = Depends(database.get_db)):
 )
 def inserir_equipamento(
     equipamento: Equipamento,
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN", "GESTOR")
+    )
 ):
     try:
         equipamento_cadastrado = EquipamentoController.cadastrar_equipamento(
@@ -66,7 +76,10 @@ def inserir_equipamento(
 def atualizar_equipamento(
     equipamento_id: int,
     equipamento_data: Equipamento,
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN", "GESTOR")
+    )
 ):
     try:
         return EquipamentoController.atualizar_equipamento(
@@ -100,7 +113,10 @@ def atualizar_equipamento(
 )
 def deletar_equipamento(
     equipamento_id: int,
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN", "GESTOR")
+    )
 ):
     try:
         EquipamentoController.deletar_equipamento(
