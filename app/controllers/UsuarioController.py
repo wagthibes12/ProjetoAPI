@@ -10,10 +10,10 @@ from entidades.models import (
 from core.security import cria_hash_senha
 
 
-def inserir_usuario(usuarioa: UsuarioCriacao, db: Session):
+def inserir_usuario(usuario: UsuarioCriacao, db: Session):
     try:
-        dados = usuarioa.model_dump(exclude={"senha"})
-        dados["senha_hash"] = cria_hash_senha(usuarioa.senha)
+        dados = usuario.model_dump(exclude={"senha"})
+        dados["senha_hash"] = cria_hash_senha(usuario.senha)
 
         usuario_insert = Usuario(**dados)
 
@@ -100,9 +100,11 @@ def atualizar_usuario(
         if usuario is None:
             raise KeyError("Usuário informado não localizado.")
 
-        dados = dados_atualizados.model_dump(exclude_unset=True)
+        dados = dados_atualizados.model_dump(
+            exclude_unset=True,
+            exclude={"id_usuario"}
+        )
 
-        # Se uma nova senha foi enviada, armazena somente o hash.
         nova_senha = dados.pop("senha", None)
 
         if nova_senha:
