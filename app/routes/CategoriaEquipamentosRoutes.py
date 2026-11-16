@@ -7,6 +7,7 @@ from dependencies.dependencies import database
 from dependencies.auth import verifica_permissao
 from controllers import CategoriaEquipamentosController
 
+
 categoria_equipamento_router = APIRouter()
 
 

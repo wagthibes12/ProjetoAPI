@@ -1,3 +1,4 @@
+
 from sqlmodel import Session, select
 from sqlalchemy.exc import OperationalError, IntegrityError
 
@@ -7,12 +8,10 @@ from core.security import verifica_senha, criar_token
 
 def fazer_login(db: Session, email: str, password: str):
     try:
-        
         usuario = db.exec(
             select(Usuario).where(Usuario.email == email)
         ).first()
 
-        
         senha_valida = (
             usuario is not None
             and verifica_senha(password, usuario.senha_hash)
@@ -21,13 +20,13 @@ def fazer_login(db: Session, email: str, password: str):
         if not senha_valida:
             raise ValueError("Credenciais inválidas")
 
-        
         perfil = db.get(Perfil, usuario.perfil_id)
 
         if perfil is None:
-            raise ValueError("Perfil do usuário não encontrado")
+            raise RuntimeError(
+                "O usuário não possui um perfil válido cadastrado."
+            )
 
-        
         token = criar_token(
             str(usuario.id_usuario),
             role=perfil.rotulo

@@ -20,7 +20,7 @@ usuario_router = APIRouter()
     response_model=list[UsuarioResposta],
     status_code=status.HTTP_200_OK
 )
-def listarusuarios(
+def listar_usuarios(
     db: Session = Depends(database.get_db),
     usuario_atual=Depends(verifica_permissao("ADMIN"))
 ):
