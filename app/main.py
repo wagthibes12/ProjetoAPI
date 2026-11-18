@@ -1,11 +1,13 @@
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from routes.CategoriaEquipamentosRoutes import categoria_equipamento_router
 from routes.EquipamentosRoutes import equipamento_router
 from routes.PerfilRoutes import perfil_router
 from routes.UsuarioRoutes import usuario_router
 from routes.AuthRoutes import auth_routes
+from routes import SolicitacaoRoutes
 
 
 app = FastAPI(
@@ -15,12 +17,32 @@ app = FastAPI(
 )
 
 
-# Registro das rotas
+# =========================
+# CONFIGURAÇÃO CORS
+# =========================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5500",
+        "http://localhost:5500"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# =========================
+# REGISTRO DAS ROTAS
+# =========================
+
 app.include_router(auth_routes)
 app.include_router(categoria_equipamento_router)
 app.include_router(equipamento_router)
 app.include_router(perfil_router)
 app.include_router(usuario_router)
+app.include_router(SolicitacaoRoutes.router)
 
 
 @app.get("/")
