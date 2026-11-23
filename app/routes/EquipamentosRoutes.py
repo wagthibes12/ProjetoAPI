@@ -7,8 +7,13 @@ from dependencies.dependencies import database
 from dependencies.auth import verifica_permissao
 from controllers import EquipamentoController
 
+
 equipamento_router = APIRouter()
 
+
+# =========================
+# LISTAR EQUIPAMENTOS
+# =========================
 
 @equipamento_router.get(
     "/equipamentos",
@@ -22,12 +27,11 @@ def listar_equipamentos(
     )
 ):
     try:
-        equipamentos = EquipamentoController.buscar_todos_equipamentos(db)
+        equipamentos = (
+            EquipamentoController.buscar_todos_equipamentos(db)
+        )
 
-        if not equipamentos:
-            return []
-
-        return equipamentos
+        return equipamentos if equipamentos else []
 
     except RuntimeError as e:
         raise HTTPException(
@@ -35,6 +39,10 @@ def listar_equipamentos(
             detail=str(e)
         )
 
+
+# =========================
+# CADASTRAR EQUIPAMENTO
+# =========================
 
 @equipamento_router.post(
     "/equipamentos",
@@ -49,16 +57,9 @@ def inserir_equipamento(
     )
 ):
     try:
-        equipamento_cadastrado = EquipamentoController.cadastrar_equipamento(
+        return EquipamentoController.cadastrar_equipamento(
             equipamento,
             db
-        )
-        return equipamento_cadastrado
-
-    except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
         )
 
     except ValueError as e:
@@ -67,6 +68,16 @@ def inserir_equipamento(
             detail=str(e)
         )
 
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# =========================
+# ATUALIZAR EQUIPAMENTO
+# =========================
 
 @equipamento_router.put(
     "/equipamentos/{equipamento_id}",
@@ -106,6 +117,10 @@ def atualizar_equipamento(
             detail=str(e)
         )
 
+
+# =========================
+# EXCLUIR EQUIPAMENTO
+# =========================
 
 @equipamento_router.delete(
     "/equipamentos/{equipamento_id}",

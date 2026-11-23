@@ -1,4 +1,6 @@
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,12 +10,33 @@ from routes.PerfilRoutes import perfil_router
 from routes.UsuarioRoutes import usuario_router
 from routes.AuthRoutes import auth_routes
 from routes import SolicitacaoRoutes
+from routes.EmprestimoRoutes import router as emprestimo_router
+from routes.DevolucaoRoutes import router as devolucao_router
 
+from dependencies.dependencies import database
+
+
+# =========================
+# CICLO DE VIDA DA API
+# =========================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        database.close()
+
+
+# =========================
+# CRIAÇÃO DA API
+# =========================
 
 app = FastAPI(
     title="Primeira API de Wagner",
     description="Primeira API desenvolvida por Wagner",
-    version="0.0.1"
+    version="0.0.1",
+    lifespan=lifespan
 )
 
 
@@ -43,12 +66,24 @@ app.include_router(equipamento_router)
 app.include_router(perfil_router)
 app.include_router(usuario_router)
 app.include_router(SolicitacaoRoutes.router)
+app.include_router(emprestimo_router)
+app.include_router(devolucao_router)
 
+
+# =========================
+# ROTA PRINCIPAL
+# =========================
 
 @app.get("/")
 def root():
-    return {"message": "API funcionando"}
+    return {
+        "message": "API funcionando"
+    }
 
+
+# =========================
+# CONFIGURAÇÕES DA API
+# =========================
 
 @app.get("/config")
 def config():

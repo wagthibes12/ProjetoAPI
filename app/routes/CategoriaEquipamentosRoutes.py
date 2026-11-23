@@ -1,8 +1,8 @@
 
 from fastapi import APIRouter, Depends, status, HTTPException
-from entidades.models import CategoriaEquipamento
 from sqlmodel import Session
 
+from entidades.models import CategoriaEquipamento
 from dependencies.dependencies import database
 from dependencies.auth import verifica_permissao
 from controllers import CategoriaEquipamentosController
@@ -11,24 +11,28 @@ from controllers import CategoriaEquipamentosController
 categoria_equipamento_router = APIRouter()
 
 
+# =========================
+# LISTAR CATEGORIAS
+# =========================
+
 @categoria_equipamento_router.get(
     "/categorias",
     response_model=list[CategoriaEquipamento],
     status_code=status.HTTP_200_OK
 )
-def listarCategorias(
+def listar_categorias(
     db: Session = Depends(database.get_db),
     usuario_atual=Depends(
         verifica_permissao("ADMIN", "GESTOR", "DISCENTE")
     )
 ):
     try:
-        categorias = CategoriaEquipamentosController.buscar_todas_categoria_equipamento(db)
+        categorias = (
+            CategoriaEquipamentosController
+            .buscar_todas_categoria_equipamento(db)
+        )
 
-        if not categorias:
-            return []
-
-        return categorias
+        return categorias if categorias else []
 
     except RuntimeError as e:
         raise HTTPException(
@@ -36,6 +40,10 @@ def listarCategorias(
             detail=str(e)
         )
 
+
+# =========================
+# CADASTRAR CATEGORIA
+# =========================
 
 @categoria_equipamento_router.post(
     "/categorias",
@@ -50,16 +58,9 @@ def inserir(
     )
 ):
     try:
-        categoria_cadastrada = CategoriaEquipamentosController.inserir_categoria(
+        return CategoriaEquipamentosController.inserir_categoria(
             categoria,
             db
-        )
-        return categoria_cadastrada
-
-    except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
         )
 
     except ValueError as e:
@@ -68,13 +69,23 @@ def inserir(
             detail=str(e)
         )
 
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# =========================
+# ATUALIZAR CATEGORIA
+# =========================
 
 @categoria_equipamento_router.put(
     "/categorias/{categoria_id}",
     status_code=status.HTTP_200_OK,
     response_model=CategoriaEquipamento
 )
-def AtualizarCategoria(
+def atualizar_categoria(
     categoria_id: int,
     categoria_data: CategoriaEquipamento,
     db: Session = Depends(database.get_db),
@@ -107,6 +118,10 @@ def AtualizarCategoria(
             detail=str(e)
         )
 
+
+# =========================
+# EXCLUIR CATEGORIA
+# =========================
 
 @categoria_equipamento_router.delete(
     "/categorias/{categoria_id}",

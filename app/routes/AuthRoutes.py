@@ -10,6 +10,10 @@ from controllers.AuthController import fazer_login
 auth_routes = APIRouter()
 
 
+# =========================
+# LOGIN
+# =========================
+
 @auth_routes.post(
     "/auth/login",
     status_code=status.HTTP_200_OK
@@ -30,5 +34,11 @@ def login(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
+
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )

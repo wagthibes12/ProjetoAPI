@@ -5,6 +5,10 @@ from datetime import datetime, date
 from pydantic import BaseModel, ConfigDict
 
 
+# =========================
+# AUTENTICAÇÃO
+# =========================
+
 class UsuarioLogin(BaseModel):
     email: str
     senha: str
@@ -22,9 +26,20 @@ class UsuarioLogado(BaseModel):
 # =========================
 
 class PerfilBase(SQLModel):
-    nome: str = Field(min_length=2, max_length=50)
-    rotulo: str = Field(min_length=2, max_length=50)
-    descricao: str = Field(max_length=255)
+    nome: str = Field(
+        min_length=2,
+        max_length=50
+    )
+
+    rotulo: str | None = Field(
+        default=None,
+        max_length=50
+    )
+
+    descricao: str | None = Field(
+        default=None,
+        max_length=255
+    )
 
 
 class Perfil(PerfilBase, table=True):
@@ -48,7 +63,9 @@ class CategoriaEquipamento(SQLModel, table=True):
         primary_key=True
     )
 
-    categoria_descricao: str = Field(max_length=100)
+    categoria_descricao: str = Field(
+        max_length=100
+    )
 
 
 # =========================
@@ -66,9 +83,14 @@ class UsuarioBase(SQLModel):
         max_length=20
     )
 
-    email: str = Field(max_length=100)
+    email: str = Field(
+        max_length=100
+    )
 
-    curso: str | None = None
+    curso: str | None = Field(
+        default=None,
+        max_length=100
+    )
 
     perfil_id: int = Field(
         foreign_key="perfis.id_perfil"
@@ -83,7 +105,9 @@ class Usuario(UsuarioBase, table=True):
         primary_key=True
     )
 
-    senha_hash: str
+    senha_hash: str = Field(
+        max_length=255
+    )
 
 
 class UsuarioCriacao(UsuarioBase):
@@ -111,7 +135,10 @@ class UsuarioAtualizacao(BaseModel):
         max_length=100
     )
 
-    curso: str | None = None
+    curso: str | None = Field(
+        default=None,
+        max_length=100
+    )
 
     senha: str | None = Field(
         default=None,
@@ -224,8 +251,11 @@ class Solicitacao(SolicitacaoBase, table=True):
 
 class SolicitacaoCriacao(SQLModel):
     equipamento_id: int
+
     data_prevista_retirada: date
+
     data_prevista_devolucao: date
+
     observacao: str | None = Field(
         default=None,
         max_length=255
@@ -237,3 +267,72 @@ class SolicitacaoResposta(SolicitacaoBase):
 
     solicitacao_id: int
     data_solicitacao: datetime
+
+
+# =========================
+# EMPRÉSTIMOS
+# =========================
+
+class EmprestimoStatus(str, Enum):
+    Ativo = "Ativo"
+    Finalizado = "Finalizado"
+
+
+class EmprestimoBase(SQLModel):
+    solicitacao_id: int = Field(
+        foreign_key="solicitacoes.solicitacao_id"
+    )
+
+    data_retirada: datetime = Field(
+        default_factory=datetime.now
+    )
+
+    responsavel_retirada_id: int = Field(
+        foreign_key="usuarios.id_usuario"
+    )
+
+    status_emprestimo: EmprestimoStatus = Field(
+        default=EmprestimoStatus.Ativo
+    )
+
+
+class Emprestimo(EmprestimoBase, table=True):
+    __tablename__ = "emprestimos"
+
+    emprestimo_id: int | None = Field(
+        default=None,
+        primary_key=True
+    )
+
+
+class EmprestimoResposta(EmprestimoBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    emprestimo_id: int
+
+
+# =========================
+# DEVOLUÇÕES
+# =========================
+
+class DevolucaoBase(SQLModel):
+    emprestimo_id: int = Field(
+        foreign_key="emprestimos.emprestimo_id"
+    )
+
+    data_devolucao: datetime = Field(
+        default_factory=datetime.now
+    )
+
+    responsavel_recebimento_id: int = Field(
+        foreign_key="usuarios.id_usuario"
+    )
+
+    observacao: str | None = Field(
+        default=None,
+        max_length=255
+    )
+
+
+class Devolucao(EmprestimoBase, table=False):
+    pass

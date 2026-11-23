@@ -7,6 +7,7 @@ from entidades.models import (
     UsuarioAtualizacao,
     UsuarioResposta,
 )
+
 from dependencies.dependencies import database
 from dependencies.auth import verifica_permissao
 from controllers import UsuarioController
@@ -15,6 +16,10 @@ from controllers import UsuarioController
 usuario_router = APIRouter()
 
 
+# =========================
+# LISTAR USUÁRIOS
+# =========================
+
 @usuario_router.get(
     "/usuarios",
     response_model=list[UsuarioResposta],
@@ -22,10 +27,13 @@ usuario_router = APIRouter()
 )
 def listar_usuarios(
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
         usuarios = UsuarioController.buscar_todos_os_usuarios(db)
+
         return usuarios if usuarios else []
 
     except RuntimeError as e:
@@ -35,6 +43,10 @@ def listar_usuarios(
         )
 
 
+# =========================
+# CADASTRAR USUÁRIO
+# =========================
+
 @usuario_router.post(
     "/usuarios",
     response_model=UsuarioResposta,
@@ -43,10 +55,15 @@ def listar_usuarios(
 def inserir_usuario(
     usuario: UsuarioCriacao,
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
-        return UsuarioController.inserir_usuario(usuario, db)
+        return UsuarioController.inserir_usuario(
+            usuario,
+            db
+        )
 
     except ValueError as e:
         raise HTTPException(
@@ -61,6 +78,10 @@ def inserir_usuario(
         )
 
 
+# =========================
+# ATUALIZAR USUÁRIO
+# =========================
+
 @usuario_router.put(
     "/usuarios/{usuario_id}",
     response_model=UsuarioResposta,
@@ -70,7 +91,9 @@ def atualizar_usuario(
     usuario_id: int,
     usuario_data: UsuarioAtualizacao,
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
         return UsuarioController.atualizar_usuario(
@@ -98,6 +121,10 @@ def atualizar_usuario(
         )
 
 
+# =========================
+# EXCLUIR USUÁRIO
+# =========================
+
 @usuario_router.delete(
     "/usuarios/{usuario_id}",
     status_code=status.HTTP_204_NO_CONTENT
@@ -105,10 +132,15 @@ def atualizar_usuario(
 def deletar_usuario(
     usuario_id: int,
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
-        UsuarioController.deletar_usuario(db, usuario_id)
+        UsuarioController.deletar_usuario(
+            db,
+            usuario_id
+        )
 
     except KeyError as e:
         raise HTTPException(

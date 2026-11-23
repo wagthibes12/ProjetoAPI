@@ -1,23 +1,46 @@
 
 from sqlmodel import Session, select
-from entidades.models import Equipamento
-from sqlalchemy.exc import OperationalError, IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 
+from entidades.models import (
+    Equipamento,
+    EquipamentoStatus
+)
+
+
+# =========================
+# BUSCAR TODOS OS EQUIPAMENTOS
+# =========================
 
 def buscar_todos_equipamentos(db: Session):
     try:
-        statement = select(Equipamento)
+        statement = (
+            select(Equipamento)
+            .order_by(Equipamento.equipamento_id.desc())
+        )
+
         return db.exec(statement).all()
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
+        db.rollback()
         raise RuntimeError(
-            "Falha na conexão com o banco de dados."
+            "Falha ao consultar os equipamentos no banco de dados."
         ) from e
 
 
-def cadastrar_equipamento(equipamento_data: Equipamento, db: Session):
+# =========================
+# CADASTRAR EQUIPAMENTO
+# =========================
+
+def cadastrar_equipamento(
+    equipamento_data: Equipamento,
+    db: Session
+):
     try:
-        dados = equipamento_data.model_dump(exclude={"equipamento_id"})
+        # Impede que o ID seja informado pelo usuário.
+        dados = equipamento_data.model_dump(
+            exclude={"equipamento_id"}
+        )
 
         equipamento = Equipamento(**dados)
 
@@ -27,19 +50,16 @@ def cadastrar_equipamento(equipamento_data: Equipamento, db: Session):
 
         return equipamento
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
         db.rollback()
         raise RuntimeError(
-            "Falha na conexão com o banco de dados."
+            "Não foi possível cadastrar o equipamento no banco de dados."
         ) from e
 
-    except IntegrityError as e:
-        db.rollback()
-        raise ValueError(
-            "Não foi possível cadastrar o equipamento. "
-            "Verifique os dados e as restrições do banco."
-        ) from e
 
+# =========================
+# ATUALIZAR EQUIPAMENTO
+# =========================
 
 def atualizar_equipamento(
     db: Session,
@@ -47,11 +67,21 @@ def atualizar_equipamento(
     equipamento_data: Equipamento
 ):
     try:
-        equipamento = db.get(Equipamento, equipamento_id)
+        # Bloqueia o registro durante a atualização.
+        statement = (
+            select(Equipamento)
+            .where(
+                Equipamento.equipamento_id == equipamento_id
+            )
+            .with_for_update()
+        )
+
+        equipamento = db.exec(statement).first()
 
         if equipamento is None:
             raise KeyError("Equipamento não encontrado.")
 
+        # Não permite alterar o ID do equipamento.
         dados = equipamento_data.model_dump(
             exclude_unset=True,
             exclude={"equipamento_id"}
@@ -66,39 +96,59 @@ def atualizar_equipamento(
 
         return equipamento
 
-    except OperationalError as e:
+    except (KeyError, ValueError):
+        db.rollback()
+        raise
+
+    except SQLAlchemyError as e:
         db.rollback()
         raise RuntimeError(
-            "Falha na conexão com o banco de dados."
-        ) from e
-
-    except IntegrityError as e:
-        db.rollback()
-        raise ValueError(
-            "Não foi possível atualizar o equipamento. "
-            "Verifique os dados informados."
+            "Não foi possível atualizar o equipamento no banco de dados."
         ) from e
 
 
-def deletar_equipamento(db: Session, equipamento_id: int):
+# =========================
+# DELETAR EQUIPAMENTO
+# =========================
+
+def deletar_equipamento(
+    db: Session,
+    equipamento_id: int
+):
     try:
-        equipamento = db.get(Equipamento, equipamento_id)
+        # Bloqueia o equipamento durante a exclusão.
+        statement = (
+            select(Equipamento)
+            .where(
+                Equipamento.equipamento_id == equipamento_id
+            )
+            .with_for_update()
+        )
+
+        equipamento = db.exec(statement).first()
 
         if equipamento is None:
             raise KeyError("Equipamento não encontrado.")
 
+        # Não permite excluir equipamento emprestado.
+        if (
+            equipamento.equipamento_status_equipamento
+            == EquipamentoStatus.Emprestado
+        ):
+            raise ValueError(
+                "Não é possível excluir um equipamento que está emprestado."
+            )
+
         db.delete(equipamento)
         db.commit()
 
-    except OperationalError as e:
+    except (KeyError, ValueError):
         db.rollback()
-        raise RuntimeError(
-            "Falha na conexão com o banco de dados."
-        ) from e
+        raise
 
-    except IntegrityError as e:
+    except SQLAlchemyError as e:
         db.rollback()
         raise ValueError(
             "Não foi possível excluir o equipamento. "
-            "Verifique se existem registros relacionados."
+            "Verifique se existem solicitações ou outros registros relacionados."
         ) from e

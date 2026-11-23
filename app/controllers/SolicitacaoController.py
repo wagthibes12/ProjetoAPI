@@ -1,6 +1,6 @@
 
 from sqlmodel import Session, select
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 
 from entidades.models import (
@@ -22,9 +22,16 @@ def criar_solicitacao(
     usuario_id: int
 ):
     try:
-        # Bloqueia temporariamente o equipamento.
-        # Evita que duas solicitações sejam processadas
-        # simultaneamente para o mesmo equipamento.
+        # Valida as datas.
+        if (
+            dados.data_prevista_devolucao
+            <= dados.data_prevista_retirada
+        ):
+            raise ValueError(
+                "A data prevista de devolução deve ser posterior à retirada."
+            )
+
+        # Bloqueia o equipamento durante a operação.
         statement = (
             select(Equipamento)
             .where(
@@ -38,7 +45,6 @@ def criar_solicitacao(
         if equipamento is None:
             raise ValueError("Equipamento não encontrado.")
 
-        # Verifica se o equipamento está disponível.
         if (
             equipamento.equipamento_status_equipamento
             != EquipamentoStatus.Disponivel
@@ -47,14 +53,13 @@ def criar_solicitacao(
                 "Este equipamento não está disponível para solicitação."
             )
 
-        # Verifica se já existe uma solicitação pendente
-        # para o mesmo equipamento.
+        # Verifica se já existe solicitação pendente.
         solicitacao_pendente = db.exec(
             select(Solicitacao).where(
                 Solicitacao.equipamento_id == dados.equipamento_id,
                 Solicitacao.status_solicitacao
                 == SolicitacaoStatus.Pendente
-            ).with_for_update()
+            )
         ).first()
 
         if solicitacao_pendente is not None:
@@ -62,16 +67,6 @@ def criar_solicitacao(
                 "Este equipamento já possui uma solicitação pendente."
             )
 
-        # Valida as datas.
-        if (
-            dados.data_prevista_devolucao
-            <= dados.data_prevista_retirada
-        ):
-            raise ValueError(
-                "A data prevista de devolução deve ser posterior à retirada."
-            )
-
-        # Cria a solicitação.
         solicitacao = Solicitacao(
             usuario_id=usuario_id,
             equipamento_id=dados.equipamento_id,
@@ -92,7 +87,7 @@ def criar_solicitacao(
         db.rollback()
         raise
 
-    except (IntegrityError, OperationalError) as e:
+    except SQLAlchemyError as e:
         db.rollback()
         raise RuntimeError(
             "Erro ao cadastrar solicitação no banco de dados."
@@ -105,13 +100,15 @@ def criar_solicitacao(
 
 def listar_solicitacoes(db: Session):
     try:
-        statement = select(Solicitacao).order_by(
-            Solicitacao.solicitacao_id.desc()
+        statement = (
+            select(Solicitacao)
+            .order_by(Solicitacao.solicitacao_id.desc())
         )
 
         return db.exec(statement).all()
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
+        db.rollback()
         raise RuntimeError(
             "Erro ao consultar as solicitações."
         ) from e
@@ -136,7 +133,11 @@ def buscar_solicitacao(
 
         return solicitacao
 
-    except OperationalError as e:
+    except ValueError:
+        raise
+
+    except SQLAlchemyError as e:
+        db.rollback()
         raise RuntimeError(
             "Erro ao consultar a solicitação."
         ) from e
@@ -159,7 +160,8 @@ def listar_solicitacoes_usuario(
 
         return db.exec(statement).all()
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
+        db.rollback()
         raise RuntimeError(
             "Erro ao consultar as solicitações do usuário."
         ) from e
@@ -176,10 +178,16 @@ def atualizar_status_solicitacao(
     responsavel_id: int
 ):
     try:
-        solicitacao = db.get(
-            Solicitacao,
-            solicitacao_id
+        # Bloqueia a solicitação durante a análise.
+        statement = (
+            select(Solicitacao)
+            .where(
+                Solicitacao.solicitacao_id == solicitacao_id
+            )
+            .with_for_update()
         )
+
+        solicitacao = db.exec(statement).first()
 
         if solicitacao is None:
             raise ValueError("Solicitação não encontrada.")
@@ -214,7 +222,7 @@ def atualizar_status_solicitacao(
         db.rollback()
         raise
 
-    except (IntegrityError, OperationalError) as e:
+    except SQLAlchemyError as e:
         db.rollback()
         raise RuntimeError(
             "Erro ao atualizar o status da solicitação."
@@ -231,10 +239,16 @@ def cancelar_solicitacao(
     usuario_id: int
 ):
     try:
-        solicitacao = db.get(
-            Solicitacao,
-            solicitacao_id
+        # Bloqueia a solicitação durante o cancelamento.
+        statement = (
+            select(Solicitacao)
+            .where(
+                Solicitacao.solicitacao_id == solicitacao_id
+            )
+            .with_for_update()
         )
+
+        solicitacao = db.exec(statement).first()
 
         if solicitacao is None:
             raise ValueError("Solicitação não encontrada.")
@@ -264,7 +278,7 @@ def cancelar_solicitacao(
         db.rollback()
         raise
 
-    except (IntegrityError, OperationalError) as e:
+    except SQLAlchemyError as e:
         db.rollback()
         raise RuntimeError(
             "Erro ao cancelar a solicitação."

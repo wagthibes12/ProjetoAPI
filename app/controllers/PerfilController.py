@@ -1,46 +1,82 @@
 
 from sqlmodel import Session, select
-from sqlalchemy.exc import OperationalError, IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
 
 from entidades.models import Perfil
 
 
-def inserir_perfil(perfil: Perfil, db: Session):
+# =========================
+# INSERIR PERFIL
+# =========================
+
+def inserir_perfil(
+    perfil: Perfil,
+    db: Session
+):
     try:
-        db.add(perfil)
+        dados = perfil.model_dump(
+            exclude={"id_perfil"}
+        )
+
+        perfil_insert = Perfil(**dados)
+
+        db.add(perfil_insert)
         db.commit()
-        db.refresh(perfil)
+        db.refresh(perfil_insert)
 
-        return perfil
+        return perfil_insert
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
         db.rollback()
+
+        mensagem = str(e).lower()
+
+        if "duplicate" in mensagem or "unique" in mensagem:
+            raise ValueError(
+                "Este perfil já está cadastrado no sistema."
+            ) from e
+
         raise RuntimeError(
-            "Falha de conexão com o banco de dados ao tentar cadastrar o perfil."
-        ) from e
-
-    except IntegrityError as e:
-        db.rollback()
-        raise ValueError(
-            "Este perfil já está cadastrado no sistema."
+            "Falha ao cadastrar o perfil no banco de dados."
         ) from e
 
 
-def buscar_todos_os_perfis(db: Session):
+# =========================
+# BUSCAR TODOS OS PERFIS
+# =========================
+
+def buscar_todos_os_perfis(
+    db: Session
+):
     try:
-        statement = select(Perfil)
+        statement = (
+            select(Perfil)
+            .order_by(Perfil.id_perfil)
+        )
+
         return db.exec(statement).all()
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
         db.rollback()
+
         raise RuntimeError(
-            "Falha de conexão com o banco de dados ao tentar buscar todos os perfis."
+            "Falha ao buscar os perfis no banco de dados."
         ) from e
 
 
-def deletar_perfil(db: Session, perfil_id: int):
+# =========================
+# DELETAR PERFIL
+# =========================
+
+def deletar_perfil(
+    db: Session,
+    perfil_id: int
+):
     try:
-        perfil = db.get(Perfil, perfil_id)
+        perfil = db.get(
+            Perfil,
+            perfil_id
+        )
 
         if perfil is None:
             raise KeyError("Perfil não encontrado.")
@@ -48,26 +84,34 @@ def deletar_perfil(db: Session, perfil_id: int):
         db.delete(perfil)
         db.commit()
 
-    except IntegrityError as e:
+    except KeyError:
         db.rollback()
+        raise
+
+    except SQLAlchemyError as e:
+        db.rollback()
+
         raise ValueError(
-            "Não é possível deletar este perfil."
+            "Não é possível excluir este perfil. "
+            "Verifique se existem usuários vinculados a ele."
         ) from e
 
-    except OperationalError as e:
-        db.rollback()
-        raise RuntimeError(
-            "Falha de comunicação com o banco de dados."
-        ) from e
 
+# =========================
+# ATUALIZAR PERFIL
+# =========================
 
 def atualizar_perfil(
     db: Session,
     perfil_id: int,
     dados_atualizados: Perfil
 ) -> Perfil:
+
     try:
-        perfil = db.get(Perfil, perfil_id)
+        perfil = db.get(
+            Perfil,
+            perfil_id
+        )
 
         if perfil is None:
             raise KeyError("Perfil informado não localizado.")
@@ -77,8 +121,8 @@ def atualizar_perfil(
             exclude={"id_perfil"}
         )
 
-        for key, value in perfil_data.items():
-            setattr(perfil, key, value)
+        for campo, valor in perfil_data.items():
+            setattr(perfil, campo, valor)
 
         db.add(perfil)
         db.commit()
@@ -86,14 +130,20 @@ def atualizar_perfil(
 
         return perfil
 
-    except IntegrityError as e:
+    except KeyError:
         db.rollback()
-        raise ValueError(
-            "Erro de integridade nos dados fornecidos."
-        ) from e
+        raise
 
-    except OperationalError as e:
+    except SQLAlchemyError as e:
         db.rollback()
+
+        mensagem = str(e).lower()
+
+        if "duplicate" in mensagem or "unique" in mensagem:
+            raise ValueError(
+                "Já existe um perfil cadastrado com esses dados."
+            ) from e
+
         raise RuntimeError(
-            "Falha de comunicação com o banco de dados."
+            "Falha ao atualizar o perfil no banco de dados."
         ) from e

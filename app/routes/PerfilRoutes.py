@@ -1,31 +1,35 @@
 
 from fastapi import APIRouter, Depends, status, HTTPException
-from entidades.models import Perfil
 from sqlmodel import Session
 
+from entidades.models import Perfil
 from dependencies.dependencies import database
 from dependencies.auth import verifica_permissao
 from controllers import PerfilController
 
+
 perfil_router = APIRouter()
 
+
+# =========================
+# LISTAR PERFIS
+# =========================
 
 @perfil_router.get(
     "/perfis",
     response_model=list[Perfil],
     status_code=status.HTTP_200_OK
 )
-def listarperfis(
+def listar_perfis(
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
         perfis = PerfilController.buscar_todos_os_perfis(db)
 
-        if not perfis:
-            return []
-
-        return perfis
+        return perfis if perfis else []
 
     except RuntimeError as e:
         raise HTTPException(
@@ -33,6 +37,10 @@ def listarperfis(
             detail=str(e)
         )
 
+
+# =========================
+# CADASTRAR PERFIL
+# =========================
 
 @perfil_router.post(
     "/perfis",
@@ -42,19 +50,14 @@ def listarperfis(
 def inserir_perfil(
     perfil: Perfil,
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
-        perfil_cadastrado = PerfilController.inserir_perfil(
+        return PerfilController.inserir_perfil(
             perfil,
             db
-        )
-        return perfil_cadastrado
-
-    except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
         )
 
     except ValueError as e:
@@ -63,6 +66,16 @@ def inserir_perfil(
             detail=str(e)
         )
 
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+# =========================
+# ATUALIZAR PERFIL
+# =========================
 
 @perfil_router.put(
     "/perfis/{perfil_id}",
@@ -73,7 +86,9 @@ def atualizar_perfil(
     perfil_id: int,
     perfil_data: Perfil,
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
         return PerfilController.atualizar_perfil(
@@ -101,6 +116,10 @@ def atualizar_perfil(
         )
 
 
+# =========================
+# EXCLUIR PERFIL
+# =========================
+
 @perfil_router.delete(
     "/perfis/{perfil_id}",
     status_code=status.HTTP_204_NO_CONTENT
@@ -108,7 +127,9 @@ def atualizar_perfil(
 def deletar_perfil(
     perfil_id: int,
     db: Session = Depends(database.get_db),
-    usuario_atual=Depends(verifica_permissao("ADMIN"))
+    usuario_atual=Depends(
+        verifica_permissao("ADMIN")
+    )
 ):
     try:
         PerfilController.deletar_perfil(
